@@ -1,6 +1,10 @@
 # Running AppGini Apps On Docker
 
-This repository is a guide template for running AppGini apps on Docker.
+This repository is a guide template for running AppGini apps on Docker. 
+The included `docker-compose.yml` file launches your app in an Apache container that runs PHP. 
+The database is launched in a separate MySQL container. A special LetsEncrypt container is 
+used to automatically obtain and renew SSL certificates for your app.
+
 [AppGini](https://bigprof.com/appgini/) is a web application generator that
 allows you to build web-based database applications rapidly. This guide
 assumes that you have already built your AppGini app and have the source code
@@ -53,7 +57,12 @@ Docker Compose version v2.20.0
 > If Docker is not installed, please follow the instructions in the
 > [Docker documentation](https://docs.docker.com/engine/install/) to install it.
 
-### 2. Clone this repository
+### 3. A domain name
+
+You need to have a domain name (for example, `myapp.com`) that points to your server's IP address.
+You might also use a subdomain (for example, `myapp.mydomain.com`).
+
+## Clone this repository
 
 Clone this repository to your server. You can do this by running the following command
 from a terminal on your server:
@@ -62,11 +71,11 @@ from a terminal on your server:
 git clone https://github.com/bigprof-software/appgini-on-docker.git \
    ~/appgini-on-docker && \
 cd ~/appgini-on-docker && \
-cp .env.example .env
+cp example.env .env
 ```
 
 The above command will clone this repository to the `appgini-on-docker` directory in your
-home directory, and will copy the `.env.example` file to `.env` in the same directory.
+home directory, and will copy the `example.env` file to `.env` in the same directory.
 
 ## Prepare your AppGini app for deployment
 
@@ -98,6 +107,35 @@ all uploads for you.
 > settings would cause errors on the server. By using the application uploader, you can ensure that
 > these files are not uploaded.
 
+## Configure your docker environment
 
+Open the `.env` file in the `appgini-on-docker` directory in your home directory, and
+edit the following variables:
 
- 
+* `TOP_DOMAIN` - set this to your domain/subdomain name (for example, `myapp.com` or `myapp.mydomain.com`)
+* `MYSQL_ROOT_PASSWORD` - set this to a strong password for the MySQL root user. You can generate a strong password by running the following command from a terminal on your server:
+
+  ```bash
+  openssl rand -base64 32 | tr -d /=+
+  ```
+* `LETSENCRYPT_EMAIL` - set this to your email address. This is used by Let's Encrypt to send you expiry notifications for your SSL certificates.
+
+## Launch your app via Docker Compose
+
+Run the following command from a terminal on your server:
+
+```bash
+docker-compose up -d
+```
+
+This will launch your app in the background. You can now access your app by visiting your domain/subdomain in your browser.
+
+If you've uploaded all your app files (via FTP or SCP), you should see your app's setup page. Follow the instructions to complete the setup.
+
+If you've uploaded only the `file-uploader.php` file, you should see a blank page. You should use AppGini to upload your app as explained
+in the [application uploader documentation](https://bigprof.com/appgini/help/application-uploader).
+
+After you've uploaded your app, you should see your app's setup page. Follow the instructions to complete the setup.
+
+> Hint: Your MySQL server is `db`, your MySQL username is `root`, and your MySQL password is the one you set in the `.env` file.
+
