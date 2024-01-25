@@ -1,0 +1,86 @@
+version: '3.3'
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_logs:/var/log/mysql
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '1G' # 1GB -- increase this value if needed and your server supports it
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs:ro
+      - vhost.d:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - nginx-logs:/var/log/nginx
+      - ./custom-nginx.conf:/etc/nginx/conf.d/custom.conf:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M'
+
+  letsencrypt:
+    image: nginxproxy/acme-companion:2.2
+    container_name: letsencrypt
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - acme:/etc/acme.sh
+      - certs:/etc/nginx/certs:rw
+      - vhost.d:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    depends_on:
+      - nginx-proxy
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+      - DEFAULT_EMAIL=${LETSENCRYPT_EMAIL}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: '128M'
+
+  appgini-app:
+    depends_on:
+      - mysql
+    image: php-8.3-apache
+    container_name: appgini-app
+    volumes:
+      - ./app:/var/www/html
+    environment:
+      VIRTUAL_HOST: ${TOP_DOMAIN}
+      LETSENCRYPT_HOST: ${TOP_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    build:
+      dockerfile: Dockerfile
+    command: sh -c "chown -R www-data:www-data /var/www/html && apache2-foreground"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512M' # 512MB -- increase this value if needed and your server supports it
+
+volumes:
+  nginx-logs:
+  mysql_data:
+  mysql_logs:
+  acme:
+  certs:
+  vhost.d:
+  html:
