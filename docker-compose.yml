@@ -63,6 +63,7 @@ services:
     container_name: appgini-app
     volumes:
       - ./app:/var/www/html
+      - php_sessions:/tmp
     environment:
       VIRTUAL_HOST: ${TOP_DOMAIN}
       LETSENCRYPT_HOST: ${TOP_DOMAIN}
@@ -83,4 +84,5 @@ volumes:
   acme:
   certs:
   vhost.d:
+  php_sessions:
   html:
